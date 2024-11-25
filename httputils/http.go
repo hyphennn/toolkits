@@ -1,4 +1,4 @@
-// Package hyphenhttp
+// Package httputils
 // Author: hyphen
 // Copyright 2022 hyphen. All rights reserved.
 // Create-time: 2022/7/18
@@ -54,9 +54,12 @@ func AccessBySystemCall[T any](ctx context.Context, url string, method string, h
 	if err != nil {
 		return ret, fmt.Errorf("[AccessBySystemCall]exec cmd failed: %w", err)
 	}
-	err = json.Unmarshal(stdout.Bytes(), &ret)
-	if err != nil {
-		return ret, fmt.Errorf("[AccessBySystemCall]unmarshal stdout failed: %w", err)
+	respBody := stdout.Bytes()
+	if len(respBody) != 0 {
+		err = json.Unmarshal(respBody, &ret)
+		if err != nil {
+			return ret, fmt.Errorf("[AccessBySystemCall]unmarshal stdout failed: %w", err)
+		}
 	}
 	return ret, nil
 }
@@ -81,9 +84,11 @@ func Access[T any](ctx context.Context, url string, method string, header map[st
 	if isSuccess != nil && !isSuccess(resp) {
 		return ret, fmt.Errorf("is success return false: %s", string(respBody))
 	}
-	err = json.Unmarshal(respBody, &ret)
-	if err != nil {
-		return ret, fmt.Errorf("unmarshal resp body failed: %w", err)
+	if len(respBody) != 0 {
+		err = json.Unmarshal(respBody, &ret)
+		if err != nil {
+			return ret, fmt.Errorf("unmarshal resp body failed: %w", err)
+		}
 	}
 	return ret, nil
 }
