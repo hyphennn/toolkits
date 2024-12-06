@@ -9,11 +9,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"log/slog"
 	"net/http"
 	"os/exec"
-
-	"github.com/sirupsen/logrus"
 )
 
 var client = &http.Client{}
@@ -49,7 +48,7 @@ func AccessBySystemCall[T any](ctx context.Context, url string, method string, h
 	cmd := exec.Command("curl", args...)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
-	logrus.Infof("[AccessBySystemCall]prepared to execute: %s", cmd.String())
+	slog.InfoContext(ctx, "[AccessBySystemCall]prepared to execute: %s", cmd.String())
 	err = cmd.Run()
 	if err != nil {
 		return ret, fmt.Errorf("[AccessBySystemCall]exec cmd failed: %w", err)
@@ -77,10 +76,11 @@ func Access[T any](ctx context.Context, url string, method string, header map[st
 		return ret, fmt.Errorf("access %s failed: %w", url, err)
 	}
 	defer resp.Body.Close()
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return ret, fmt.Errorf("read resp body failed: %w", err)
 	}
+	slog.InfoContext(ctx, "[Access]read resp body success")
 	if isSuccess != nil && !isSuccess(resp) {
 		return ret, fmt.Errorf("is success return false: %s", string(respBody))
 	}
@@ -101,6 +101,9 @@ func access(ctx context.Context, url string, method string, header map[string]st
 	}
 	bodyReader := bytes.NewReader(bodyJSON)
 	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	if err != nil {
+		return nil, err
+	}
 	if setAuthorization != nil {
 		setAuthorization(req)
 	}
